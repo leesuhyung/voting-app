@@ -1,5 +1,5 @@
 import { v4 as uuid4 } from 'uuid';
-import { User, UserInterface } from '@/models/User';
+import { User } from '@/models/User';
 import { VoteItem, VoteItemInterface } from '@/models/VoteItem';
 
 export enum VOTE_STATUS {
@@ -11,21 +11,20 @@ export enum VOTE_STATUS {
 export interface VoteInterface {
   id: string;
   title: string;
-  startDate: Date | null;
-  endDate: Date | null;
-  status: VOTE_STATUS;
-  creator: UserInterface;
-  voteItems: VoteItemInterface[];
+  startDate: Date;
+  endDate: Date;
+  creator: User;
+  voteItems: VoteItem[];
+  status(): VOTE_STATUS;
 }
 
 export class Vote implements VoteInterface {
   id = '';
   title = '';
-  startDate = null;
-  endDate = null;
-  status = VOTE_STATUS.WAIT;
-  creator = {} as UserInterface;
-  voteItems = [] as VoteItemInterface[];
+  startDate!: Date;
+  endDate!: Date;
+  creator = {} as User;
+  voteItems = [] as VoteItem[];
 
   constructor(vote?: VoteInterface) {
     vote && Object.assign(this, vote);
@@ -34,7 +33,9 @@ export class Vote implements VoteInterface {
       while (
         this.voteItems.length < process.env.VUE_APP_DEFAULT_VOTE_ITEM_COUNT
       ) {
-        this.voteItems.push(new VoteItem());
+        this.voteItems.push(
+          new VoteItem({ voteId: this.id } as VoteItemInterface),
+        );
       }
     }
 
@@ -43,11 +44,22 @@ export class Vote implements VoteInterface {
     }
 
     if (this.voteItems.length) {
-      for (let voteItem of this.voteItems) {
-        if (!(voteItem instanceof VoteItem)) {
-          voteItem = new VoteItem(voteItem);
-        }
+      this.voteItems = this.voteItems.map(voteItem => new VoteItem(voteItem));
+    }
+  }
+
+  status(): VOTE_STATUS {
+    if (this.startDate && this.endDate) {
+      if (
+        Date.now() >= this.startDate.getTime() &&
+        Date.now() < this.endDate.getTime()
+      ) {
+        return VOTE_STATUS.LIVE;
+      } else if (Date.now() >= this.endDate.getTime()) {
+        return VOTE_STATUS.FINISH;
       }
     }
+
+    return VOTE_STATUS.WAIT;
   }
 }

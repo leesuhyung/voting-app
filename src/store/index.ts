@@ -1,54 +1,94 @@
 import Vue from 'vue';
 import Vuex from 'vuex';
 import createPersistedState from 'vuex-persistedstate';
-import { UserInterface } from '@/models/User';
-import { Vote, VOTE_STATUS, VoteInterface } from '@/models/Vote';
+import { User, UserInterface } from '@/models/User';
+import { Vote, VoteInterface } from '@/models/Vote';
+import { VoteItemInterface } from '@/models/VoteItem';
 
 Vue.use(Vuex);
 
 interface State {
-  user: UserInterface;
-  votes: VoteInterface[];
+  user: User;
+  votes: Vote[];
 }
 
 export default new Vuex.Store<State>({
   state: {
-    user: {} as UserInterface,
-    votes: [] as VoteInterface[],
+    user: {} as User,
+    votes: [] as Vote[],
   },
   plugins: [createPersistedState()],
   mutations: {
-    // todo: +removeVote +updateVote (이름,시작/종료일 변경)
-    // todo: +updateVoteItem (이름변경)
     // todo: +voting (투표 VoteItem.vote++) (voters 에 유저 추가) (voters 에 이미 유저가 있으면 에러)
     addVote(state: State, vote: VoteInterface) {
       state.votes.push(new Vote(vote));
+    },
+    updateVote(state: State, updatedVote: VoteInterface) {
+      state.votes = state.votes.map(vote => {
+        if (vote.id === updatedVote.id) {
+          return Object.assign(vote, updatedVote);
+        }
+
+        return vote;
+      });
+    },
+    removeVote(state: State, index: number) {
+      state.votes.splice(index, 1);
+    },
+    updateVoteItem(state: State, updateVoteItem: VoteItemInterface) {
+      state.votes = state.votes.map(vote => {
+        if (vote.id === updateVoteItem.voteId) {
+          vote.voteItems = vote.voteItems.map(voteItem => {
+            if (voteItem.id === updateVoteItem.id) {
+              return Object.assign(voteItem, updateVoteItem);
+            }
+
+            return voteItem;
+          });
+        }
+
+        return vote;
+      });
+    },
+    setUser(state: State, user: UserInterface) {
+      state.user = new User(user);
+    },
+    removeUser(state: State) {
+      state.user = {} as User;
     },
   },
   actions: {
     addVote({ commit }, vote: VoteInterface) {
       commit('addVote', vote);
     },
+    updateVote({ commit }, updatedVote: VoteInterface) {
+      commit('updateVote', updatedVote);
+    },
+    removeVote({ commit }, index: number) {
+      commit('removeVote', index);
+    },
+    updateVoteItem({ commit }, updateVoteItem: VoteItemInterface) {
+      commit('updateVoteItem', updateVoteItem);
+    },
+    setUser({ commit }, user: UserInterface) {
+      commit('setUser', user);
+    },
+    removeUser({ commit }) {
+      commit('removeUser');
+    },
   },
   getters: {
-    votes: (state: State): VoteInterface[] => {
-      return state.votes.map(vote => {
-        if (vote.startDate && vote.endDate) {
-          if (Date.now() < vote.startDate.getTime()) {
-            vote.status = VOTE_STATUS.WAIT;
-          } else if (
-            Date.now() >= vote.startDate.getTime() &&
-            Date.now() < vote.endDate.getTime()
-          ) {
-            vote.status = VOTE_STATUS.LIVE;
-          } else if (Date.now() >= vote.endDate.getTime()) {
-            vote.status = VOTE_STATUS.FINISH;
-          }
-        }
-
-        return vote;
-      });
+    votes: (state: State): Vote[] => {
+      return state.votes.map(vote => new Vote(vote));
     },
+    user: (state: State): User => {
+      if (Object.keys(state.user).length) {
+        return new User(state.user);
+      }
+
+      return {} as User;
+    },
+    verifyUser: (state: State): boolean => !!Object.keys(state.user).length,
   },
   modules: {},
 });

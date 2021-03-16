@@ -1,18 +1,20 @@
-import { User, UserInterface } from '@/models/User';
+import { User } from '@/models/User';
 import { v4 as uuid4 } from 'uuid';
 
 export interface VoteItemInterface {
   id: string;
+  voteId: string;
   name: string;
   vote: number;
-  voters: UserInterface[];
+  voters: User[];
 }
 
 export class VoteItem implements VoteItemInterface {
   id = '';
+  voteId = '';
   name = '';
   vote = 0;
-  voters = [] as UserInterface[];
+  voters = [] as User[];
 
   constructor(voteItem?: VoteItemInterface) {
     voteItem && Object.assign(this, voteItem);
@@ -21,11 +23,7 @@ export class VoteItem implements VoteItemInterface {
     }
 
     if (this.voters.length) {
-      for (let voter of this.voters) {
-        if (!(voter instanceof User)) {
-          voter = new User(voter);
-        }
-      }
+      this.voters = this.voters.map(voter => new User(voter));
     }
   }
 }
