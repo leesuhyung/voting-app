@@ -1,5 +1,5 @@
 import { v4 as uuid4 } from 'uuid';
-import { User } from '@/models/User';
+import { User, UserInterface } from '@/models/User';
 import { VoteItem, VoteItemInterface } from '@/models/VoteItem';
 
 export enum VOTE_STATUS {
@@ -11,32 +11,25 @@ export enum VOTE_STATUS {
 export interface VoteInterface {
   id: string;
   title: string;
-  startDate: Date;
-  endDate: Date;
-  creator: User;
-  voteItems: VoteItem[];
+  startDate: string;
+  endDate: string;
+  creator: UserInterface;
+  voteItems: VoteItemInterface[];
   status(): VOTE_STATUS;
 }
 
 export class Vote implements VoteInterface {
   id = '';
   title = '';
-  startDate!: Date;
-  endDate!: Date;
-  creator = {} as User;
-  voteItems = [] as VoteItem[];
+  startDate = '';
+  endDate = '';
+  creator = {} as UserInterface;
+  voteItems = [] as VoteItemInterface[];
 
   constructor(vote?: VoteInterface) {
     vote && Object.assign(this, vote);
     if (!this.id) {
       this.id = uuid4();
-      while (
-        this.voteItems.length < process.env.VUE_APP_DEFAULT_VOTE_ITEM_COUNT
-      ) {
-        this.voteItems.push(
-          new VoteItem({ voteId: this.id } as VoteItemInterface),
-        );
-      }
     }
 
     if (this.creator.id) {
@@ -44,18 +37,27 @@ export class Vote implements VoteInterface {
     }
 
     if (this.voteItems.length) {
-      this.voteItems = this.voteItems.map(voteItem => new VoteItem(voteItem));
+      this.voteItems = this.voteItems.map(
+        voteItem => new VoteItem(Object.assign(voteItem, { voteId: this.id })),
+      );
     }
   }
 
   status(): VOTE_STATUS {
     if (this.startDate && this.endDate) {
-      if (
-        Date.now() >= this.startDate.getTime() &&
-        Date.now() < this.endDate.getTime()
-      ) {
+      const getToday = (): string => {
+        const date = new Date();
+        let m: number | string = date.getMonth() + 1;
+        let d: number | string = date.getDate();
+        m = m >= 10 ? m : `0${m}`;
+        d = d >= 10 ? d : `0${d}`;
+        return `${date.getFullYear()}-${m}-${d}`;
+      };
+      const today = getToday();
+
+      if (today >= this.startDate && today < this.endDate) {
         return VOTE_STATUS.LIVE;
-      } else if (Date.now() >= this.endDate.getTime()) {
+      } else if (today >= this.endDate) {
         return VOTE_STATUS.FINISH;
       }
     }

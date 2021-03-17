@@ -1,50 +1,25 @@
 <template>
   <v-container fluid>
-    <v-btn fab absolute large dark bottom right @click="openVoteFormDialog">
+    <v-btn fab absolute large dark bottom right @click="openVoteDialog">
       <v-icon>mdi-plus</v-icon>
     </v-btn>
 
-    <v-subheader>WAIT VOTES</v-subheader>
-
-    <v-card v-for="(vote, index) of votes" :key="vote.id" class="mb-2">
-      <v-list-item>
-        <v-list-item-content>
-          <v-list-item-title v-text="vote.title" />
-          <v-list-item-subtitle>
-            <span class="text--secondary">creator</span>
-            {{ vote.creator.nick }}
-          </v-list-item-subtitle>
-          <v-list-item-subtitle>
-            {{ vote.endDate }} due date
-          </v-list-item-subtitle>
-        </v-list-item-content>
-        <v-list-item-action>
-          <v-btn icon @click="removeVote(index)">
-            <v-icon>mdi-close</v-icon>
-          </v-btn>
-        </v-list-item-action>
-      </v-list-item>
-    </v-card>
-
-    <!-- TODO: LIVE VOTES, FINISH VOTES -->
-    <!-- TODO: VOTE UPDATE -->
-
-    <!--<v-card v-for="(vote, index) of votes" :key="vote.id" class="ma-3">
+    <v-card v-for="(vote, index) of votes" :key="vote.id" class="ma-3">
       <v-card-text>
         <v-text-field label="투표제목" v-model="vote.title" />
 
         <div class="d-flex justify-space-between">
           <v-card
-            v-for="voteItem of vote.voteItems"
-            :key="voteItem.id"
-            width="100%"
-            class="mx-2"
+              v-for="voteItem of vote.voteItems"
+              :key="voteItem.id"
+              width="100%"
+              class="mx-2"
           >
             <v-card-text>
               <v-text-field
-                label="항목명"
-                v-model="voteItem.name"
-                class="mb-3"
+                  label="항목명"
+                  v-model="voteItem.name"
+                  class="mb-3"
               />
               <v-text-field label="투표수" readonly :value="voteItem.vote" />
             </v-card-text>
@@ -59,17 +34,17 @@
         <v-btn small @click="updateVote(vote)">UPT</v-btn>
         <v-btn small @click="removeVote(index)">DEL</v-btn>
       </v-card-actions>
-    </v-card>-->
+    </v-card>
 
     <v-dialog v-model="userDialog" max-width="200">
       <v-card class="pa-3">
         <v-text-field
-          autofocus
-          hide-details
-          class="mb-3"
-          label="nickname"
-          v-model="userForm.nick"
-          @keyup.enter.native.prevent="setUser"
+            autofocus
+            hide-details
+            class="mb-3"
+            label="nickname"
+            v-model="userForm.nick"
+            @keyup.enter.native.prevent="setUser"
         />
 
         <v-btn block :disabled="!userForm.nick" @click="setUser">
@@ -81,36 +56,12 @@
     <v-dialog v-model="voteDialog" max-width="200">
       <v-card class="pa-3">
         <v-text-field
-          autofocus
-          hide-details
-          class="mb-3"
-          label="vote title"
-          v-model="voteForm.title"
-        />
-
-        <v-divider />
-
-        <div v-for="(voteItem, index) of voteForm.voteItems" :key="index">
-          <v-text-field
+            autofocus
             hide-details
             class="mb-3"
-            label="item name"
-            v-model="voteItem.name"
-          />
-        </div>
-
-        <v-text-field
-          hide-details
-          class="mb-3"
-          label="start date"
-          v-model="voteForm.startDate"
-        />
-
-        <v-text-field
-          hide-details
-          class="mb-3"
-          label="end date"
-          v-model="voteForm.endDate"
+            label="vote title"
+            v-model="voteForm.title"
+            @keyup.enter.native.prevent="addVote"
         />
 
         <v-btn block :disabled="!voteForm.title" @click="addVote">
@@ -125,30 +76,28 @@
 import { Component, Vue, Watch } from 'vue-property-decorator';
 import { VoteInterface } from '@/models/Vote';
 import { VoteItemInterface } from '@/models/VoteItem';
-import { UserInterface } from '@/models/User';
+import { User, UserInterface } from '@/models/User';
 
 @Component
 export default class Home extends Vue {
   @Watch('userDialog')
   onChangeUserDialog() {
-    this.initUserForm();
+    this.userForm.nick = '';
   }
 
   @Watch('voteDialog')
   onChangeVoteDialog() {
-    this.initVoteForm();
-  }
-
-  private created() {
-    this.initVoteForm();
-    this.initUserForm();
+    this.voteForm.title = '';
   }
 
   private voteDialog = false;
-  private voteForm = {} as VoteInterface;
-
   private userDialog = false;
-  private userForm = {} as UserInterface;
+  private voteForm = {
+    title: '',
+  } as VoteInterface;
+  private userForm = {
+    nick: '',
+  } as UserInterface;
 
   private beforeAction(): boolean {
     if (!this.verifyUser) {
@@ -159,15 +108,13 @@ export default class Home extends Vue {
     return true;
   }
 
-  private openVoteFormDialog() {
+  private openVoteDialog() {
     if (this.beforeAction()) {
       this.voteDialog = true;
     }
   }
 
   private async addVote() {
-    Object.assign(this.voteForm, { creator: this.user });
-
     await this.$store.dispatch('addVote', this.voteForm);
     this.voteDialog = false;
   }
@@ -189,29 +136,6 @@ export default class Home extends Vue {
     this.userDialog = false;
   }
 
-  private initVoteForm() {
-    this.voteForm = {
-      title: '',
-      startDate: '',
-      endDate: '',
-      creator: {} as UserInterface,
-      voteItems: (() => {
-        const voteItems = [];
-        for (let i = 0; i < process.env.VUE_APP_DEFAULT_VOTE_ITEM_COUNT; i++) {
-          voteItems.push({ name: '' } as VoteItemInterface);
-        }
-
-        return voteItems;
-      })(),
-    } as VoteInterface;
-  }
-
-  private initUserForm() {
-    this.userForm = {
-      nick: '',
-    } as UserInterface;
-  }
-
   get votes(): VoteInterface[] {
     return this.$store.getters['votes'];
   }
@@ -220,7 +144,7 @@ export default class Home extends Vue {
     return this.$store.getters['verifyUser'];
   }
 
-  get user(): UserInterface {
+  get user(): User {
     return this.$store.getters['user'];
   }
 }

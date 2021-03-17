@@ -8,14 +8,14 @@ import { VoteItemInterface } from '@/models/VoteItem';
 Vue.use(Vuex);
 
 interface State {
-  user: User;
-  votes: Vote[];
+  user: UserInterface;
+  votes: VoteInterface[];
 }
 
 export default new Vuex.Store<State>({
   state: {
-    user: {} as User,
-    votes: [] as Vote[],
+    user: {} as UserInterface,
+    votes: [] as VoteInterface[],
   },
   plugins: [createPersistedState()],
   mutations: {
@@ -54,7 +54,7 @@ export default new Vuex.Store<State>({
       state.user = new User(user);
     },
     removeUser(state: State) {
-      state.user = {} as User;
+      state.user = {} as UserInterface;
     },
   },
   actions: {
@@ -78,15 +78,15 @@ export default new Vuex.Store<State>({
     },
   },
   getters: {
-    votes: (state: State): Vote[] => {
+    votes: (state: State): VoteInterface[] => {
       return state.votes.map(vote => new Vote(vote));
     },
-    user: (state: State): User => {
+    user: (state: State): UserInterface => {
       if (Object.keys(state.user).length) {
         return new User(state.user);
       }
 
-      return {} as User;
+      return {} as UserInterface;
     },
     verifyUser: (state: State): boolean => !!Object.keys(state.user).length,
   },

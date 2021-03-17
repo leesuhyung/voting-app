@@ -1,4 +1,4 @@
-import { User } from '@/models/User';
+import { User, UserInterface } from '@/models/User';
 import { v4 as uuid4 } from 'uuid';
 
 export interface VoteItemInterface {
@@ -6,7 +6,7 @@ export interface VoteItemInterface {
   voteId: string;
   name: string;
   vote: number;
-  voters: User[];
+  voters: UserInterface[];
 }
 
 export class VoteItem implements VoteItemInterface {
@@ -14,7 +14,7 @@ export class VoteItem implements VoteItemInterface {
   voteId = '';
   name = '';
   vote = 0;
-  voters = [] as User[];
+  voters = [] as UserInterface[];
 
   constructor(voteItem?: VoteItemInterface) {
     voteItem && Object.assign(this, voteItem);
