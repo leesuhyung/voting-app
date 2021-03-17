@@ -1,150 +1,77 @@
 <template>
   <v-container fluid>
-    <v-btn fab absolute large dark bottom right @click="openVoteFormDialog">
+    <v-btn
+      class="cyp-btn__add-vote"
+      fab
+      absolute
+      large
+      dark
+      bottom
+      right
+      @click="openVoteAddDialog"
+    >
       <v-icon>mdi-plus</v-icon>
     </v-btn>
 
-    <v-subheader>WAIT VOTES</v-subheader>
+    <div v-for="(list, index) of lists" :key="index">
+      <v-subheader v-text="list.status" class="text-body-1 font-weight-bold" />
 
-    <v-card v-for="(vote, index) of votes" :key="vote.id" class="mb-2">
-      <v-list-item>
-        <v-list-item-content>
-          <v-list-item-title v-text="vote.title" />
-          <v-list-item-subtitle>
-            <span class="text--secondary">creator</span>
-            {{ vote.creator.nick }}
-          </v-list-item-subtitle>
-          <v-list-item-subtitle>
-            {{ vote.endDate }} due date
-          </v-list-item-subtitle>
-        </v-list-item-content>
-        <v-list-item-action>
-          <v-btn icon @click="removeVote(index)">
-            <v-icon>mdi-close</v-icon>
-          </v-btn>
-        </v-list-item-action>
-      </v-list-item>
-    </v-card>
+      <VoteCard
+        v-for="vote of list.votes"
+        :key="vote.id"
+        :vote="vote"
+        @edit="openVoteEditDialog"
+        @remove="removeVote(vote.id)"
+        @signIn="userDialog = true"
+      />
+    </div>
 
-    <!-- TODO: LIVE VOTES, FINISH VOTES -->
-    <!-- TODO: VOTE UPDATE -->
-
-    <!--<v-card v-for="(vote, index) of votes" :key="vote.id" class="ma-3">
-      <v-card-text>
-        <v-text-field label="투표제목" v-model="vote.title" />
-
-        <div class="d-flex justify-space-between">
-          <v-card
-            v-for="voteItem of vote.voteItems"
-            :key="voteItem.id"
-            width="100%"
-            class="mx-2"
-          >
-            <v-card-text>
-              <v-text-field
-                label="항목명"
-                v-model="voteItem.name"
-                class="mb-3"
-              />
-              <v-text-field label="투표수" readonly :value="voteItem.vote" />
-            </v-card-text>
-            <v-card-actions>
-              <v-btn small @click="updateVoteItem(voteItem)">UPT</v-btn>
-              <v-btn small :disabled="!verifyUser">VOTE</v-btn>
-            </v-card-actions>
-          </v-card>
-        </div>
-      </v-card-text>
-      <v-card-actions>
-        <v-btn small @click="updateVote(vote)">UPT</v-btn>
-        <v-btn small @click="removeVote(index)">DEL</v-btn>
-      </v-card-actions>
-    </v-card>-->
-
-    <v-dialog v-model="userDialog" max-width="200">
-      <v-card class="pa-3">
-        <v-text-field
-          autofocus
-          hide-details
-          class="mb-3"
-          label="nickname"
-          v-model="userForm.nick"
-          @keyup.enter.native.prevent="setUser"
-        />
-
-        <v-btn block :disabled="!userForm.nick" @click="setUser">
-          sign-in
-        </v-btn>
-      </v-card>
-    </v-dialog>
-
-    <v-dialog v-model="voteDialog" max-width="200">
-      <v-card class="pa-3">
-        <v-text-field
-          autofocus
-          hide-details
-          class="mb-3"
-          label="vote title"
-          v-model="voteForm.title"
-        />
-
-        <v-divider />
-
-        <div v-for="(voteItem, index) of voteForm.voteItems" :key="index">
-          <v-text-field
-            hide-details
-            class="mb-3"
-            label="item name"
-            v-model="voteItem.name"
-          />
-        </div>
-
-        <v-text-field
-          hide-details
-          class="mb-3"
-          label="start date"
-          v-model="voteForm.startDate"
-        />
-
-        <v-text-field
-          hide-details
-          class="mb-3"
-          label="end date"
-          v-model="voteForm.endDate"
-        />
-
-        <v-btn block :disabled="!voteForm.title" @click="addVote">
-          add vote
-        </v-btn>
-      </v-card>
-    </v-dialog>
+    <SignInDialog
+      :dialog.sync="userDialog"
+      :user-form="userForm"
+      @submit="setUser"
+    />
+    <VoteFormDialog
+      :dialog.sync="voteFormDialog"
+      :vote-form="voteForm"
+      @submit="submit"
+    />
   </v-container>
 </template>
 
 <script lang="ts">
 import { Component, Vue, Watch } from 'vue-property-decorator';
-import { VoteInterface } from '@/models/Vote';
+import { VOTE_STATUS, VoteInterface } from '@/models/Vote';
 import { VoteItemInterface } from '@/models/VoteItem';
 import { UserInterface } from '@/models/User';
+import VoteCard from '@/components/VoteCard.vue';
+import SignInDialog from '@/components/SignInDialog.vue';
+import VoteFormDialog from '@/components/VoteFormDialog.vue';
 
-@Component
+@Component({
+  components: {
+    VoteCard,
+    SignInDialog,
+    VoteFormDialog,
+  },
+})
 export default class Home extends Vue {
   @Watch('userDialog')
   onChangeUserDialog() {
-    this.initUserForm();
+    this.clearUserForm();
   }
 
-  @Watch('voteDialog')
-  onChangeVoteDialog() {
-    this.initVoteForm();
+  @Watch('voteFormDialog')
+  onChangeVoteFormDialog(v: boolean) {
+    if (!v) this.clearVoteForm();
   }
 
   private created() {
-    this.initVoteForm();
-    this.initUserForm();
+    this.clearVoteForm();
+    this.clearUserForm();
   }
 
-  private voteDialog = false;
+  private voteFormDialog = false;
   private voteForm = {} as VoteInterface;
 
   private userDialog = false;
@@ -159,29 +86,31 @@ export default class Home extends Vue {
     return true;
   }
 
-  private openVoteFormDialog() {
+  private openVoteAddDialog() {
     if (this.beforeAction()) {
-      this.voteDialog = true;
+      this.voteFormDialog = true;
     }
   }
 
-  private async addVote() {
-    Object.assign(this.voteForm, { creator: this.user });
-
-    await this.$store.dispatch('addVote', this.voteForm);
-    this.voteDialog = false;
+  private openVoteEditDialog(vote: VoteInterface) {
+    if (this.beforeAction()) {
+      this.voteForm = JSON.parse(JSON.stringify(vote));
+      this.voteFormDialog = true;
+    }
   }
 
-  private updateVote(updateVote: VoteInterface) {
-    this.$store.dispatch('updateVote', updateVote);
+  private async submit() {
+    if (!this.voteForm.id) {
+      Object.assign(this.voteForm, { creator: this.user });
+      await this.$store.dispatch('addVote', this.voteForm);
+    } else {
+      await this.$store.dispatch('updateVote', this.voteForm);
+    }
+    this.voteFormDialog = false;
   }
 
-  private removeVote(index: number) {
-    this.$store.dispatch('removeVote', index);
-  }
-
-  private updateVoteItem(updateVoteItem: VoteItemInterface) {
-    this.$store.dispatch('updateVoteItem', updateVoteItem);
+  private removeVote(id: string) {
+    this.$store.dispatch('removeVote', id);
   }
 
   private async setUser() {
@@ -189,7 +118,7 @@ export default class Home extends Vue {
     this.userDialog = false;
   }
 
-  private initVoteForm() {
+  private clearVoteForm() {
     this.voteForm = {
       title: '',
       startDate: '',
@@ -206,14 +135,20 @@ export default class Home extends Vue {
     } as VoteInterface;
   }
 
-  private initUserForm() {
+  private clearUserForm() {
     this.userForm = {
       nick: '',
     } as UserInterface;
   }
 
-  get votes(): VoteInterface[] {
-    return this.$store.getters['votes'];
+  get lists(): { status: VOTE_STATUS; votes: VoteInterface[] }[] {
+    const votes: VoteInterface[] = this.$store.getters['votes'];
+    return Object.values(VOTE_STATUS).map((status: VOTE_STATUS) => {
+      return {
+        status,
+        votes: votes.filter(vote => vote.status() === status),
+      };
+    });
   }
 
   get verifyUser(): boolean {

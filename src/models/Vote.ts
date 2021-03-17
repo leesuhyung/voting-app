@@ -16,6 +16,8 @@ export interface VoteInterface {
   creator: UserInterface;
   voteItems: VoteItemInterface[];
   status(): VOTE_STATUS;
+  isStatusFinish(): boolean;
+  isStatusLive(): boolean;
 }
 
 export class Vote implements VoteInterface {
@@ -45,15 +47,7 @@ export class Vote implements VoteInterface {
 
   status(): VOTE_STATUS {
     if (this.startDate && this.endDate) {
-      const getToday = (): string => {
-        const date = new Date();
-        let m: number | string = date.getMonth() + 1;
-        let d: number | string = date.getDate();
-        m = m >= 10 ? m : `0${m}`;
-        d = d >= 10 ? d : `0${d}`;
-        return `${date.getFullYear()}-${m}-${d}`;
-      };
-      const today = getToday();
+      const today = new Date().toISOString().substr(0, 10);
 
       if (today >= this.startDate && today < this.endDate) {
         return VOTE_STATUS.LIVE;
@@ -63,5 +57,13 @@ export class Vote implements VoteInterface {
     }
 
     return VOTE_STATUS.WAIT;
+  }
+
+  isStatusFinish(): boolean {
+    return this.status() === VOTE_STATUS.FINISH;
+  }
+
+  isStatusLive(): boolean {
+    return this.status() === VOTE_STATUS.LIVE;
   }
 }

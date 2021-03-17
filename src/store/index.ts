@@ -32,7 +32,8 @@ export default new Vuex.Store<State>({
         return vote;
       });
     },
-    removeVote(state: State, index: number) {
+    removeVote(state: State, id: string) {
+      const index = state.votes.findIndex(vote => vote.id === id);
       state.votes.splice(index, 1);
     },
     updateVoteItem(state: State, updateVoteItem: VoteItemInterface) {
@@ -64,8 +65,8 @@ export default new Vuex.Store<State>({
     updateVote({ commit }, updatedVote: VoteInterface) {
       commit('updateVote', updatedVote);
     },
-    removeVote({ commit }, index: number) {
-      commit('removeVote', index);
+    removeVote({ commit }, id: string) {
+      commit('removeVote', id);
     },
     updateVoteItem({ commit }, updateVoteItem: VoteItemInterface) {
       commit('updateVoteItem', updateVoteItem);
